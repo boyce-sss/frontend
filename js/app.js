@@ -1,4 +1,13 @@
-// app.js — 倉庫進出貨管理系統（與 auth.js / GAS API 相容的版本）
+// app.js — 倉庫進出貨管理系統（整合 auth.js / GAS API）
+// ----------------------------------------------------
+// 這份包含：
+// 1) UI/工具方法（notify、showLoading、showNotification shim）
+// 2) 導覽列分頁切換、右上使用者下拉選單（登出）
+// 3) 儀表板/商品/庫存/進出貨/供應商/客戶 載入
+// 4) 新增/刪除操作與 Modal 表單
+// 5) 變更密碼表單綁定
+// 6) DOMContentLoaded 初始化流程
+// ----------------------------------------------------
 
 /* ================= 工具 & UI ================= */
 function $(sel, root = document) { return root.querySelector(sel); }
@@ -28,6 +37,15 @@ function notify(type, text) {
   box.textContent = text || '';
   setTimeout(() => box.classList.remove('show'), 3000);
 }
+
+// --- 相容舊介面：把 showNotification 對應到 notify ---
+window.showNotification = function(type = 'info', title = '', message = '', timeout = 3000) {
+  const text = [title, message].filter(Boolean).join('｜');
+  const box = ensureNotifyContainer();
+  box.className = `notification ${type} show`;
+  box.textContent = text || '';
+  setTimeout(() => box.classList.remove('show'), Math.max(1000, timeout|0));
+};
 
 // 後端回傳相容：支援 {success, data} 或直接 []
 function asList(res) {
@@ -67,63 +85,60 @@ function setupNavigation() {
       if (target) target.classList.add('active');
 
       // 載入對應資料
-      switch (page) {
-        case 'dashboard': await loadDashboard(); break;
-        case 'products':  await loadProducts();  break;
-        case 'inventory': await loadInventory(); break;
-        case 'inbound':   await loadInbound();   break;
-        case 'outbound':  await loadOutbound();  break;
-        case 'suppliers': await loadSuppliers(); break;
-        case 'customers': await loadCustomers(); break;
+      try {
+        switch (page) {
+          case 'dashboard': await loadDashboard(); break;
+          case 'products':  await loadProducts();  break;
+          case 'inventory': await loadInventory(); break;
+          case 'inbound':   await loadInbound();   break;
+          case 'outbound':  await loadOutbound();  break;
+          case 'suppliers': await loadSuppliers(); break;
+          case 'customers': await loadCustomers(); break;
+        }
+      } catch (err) {
+        console.error(err);
+        notify('error', '載入分頁失敗');
       }
     });
   });
 }
 
-/* ================ 使用者選單（新增） ================= */
+/* ================ 右上使用者選單（登出） ================= */
 function setupUserMenu() {
   const btn = $('#userMenuBtn');
-  const dd  = $('#userDropdown');
-  const nameSpan = $('#userNameSpan');
+  const dropdown = $('#userDropdown');
   const logoutBtn = $('#logoutBtn');
+  const nameSpan = $('#userNameSpan');
 
-  // 顯示目前使用者名稱
-  const me = auth.getUserInfo();
-  if (nameSpan && me) {
-    nameSpan.textContent = me.username || me.使用者名稱 || me.account || '使用者';
-  }
+  // 顯示使用者名稱
+  try {
+    const me = auth.getUserInfo && auth.getUserInfo();
+    if (me && nameSpan) {
+      nameSpan.textContent = me.username || me.使用者名稱 || me.帳號 || '使用者';
+    }
+  } catch (_) {}
 
-  // 切換下拉
-  if (btn && dd) {
+  if (btn && dropdown) {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      dd.classList.toggle('show');
+      dropdown.classList.toggle('show');
     });
-
-    // 點外部關閉
+    // 點外面關閉
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.nav-user')) dd.classList.remove('show');
-    });
-
-    // Esc 關閉
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') dd.classList.remove('show');
+      if (!e.target.closest('.user-menu')) {
+        dropdown.classList.remove('show');
+      }
     });
   }
 
-  // 綁定登出
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      dd && dd.classList.remove('show');
       try {
-        showLoading(true);
-        await auth.logout(); // 內部會清 session 並導回 index.html
+        await auth.logout();
       } catch (err) {
         console.error(err);
-        notify('error', '登出失敗，請再試一次');
-      } finally {
-        showLoading(false);
+        notify('error', '登出失敗，請稍後再試');
       }
     });
   }
@@ -146,7 +161,7 @@ async function loadDashboard() {
     const monthlyTx = ((res?.monthlyStats?.inboundCount ?? 0) + (res?.monthlyStats?.outboundCount ?? 0));
     $('#monthlyTransactions') && ($('#monthlyTransactions').textContent = monthlyTx);
 
-    // 最近活動
+    // 最近活動（用最近 5 筆進/出貨）
     const act = $('#recentActivity');
     if (act) {
       const inbound = Array.isArray(res?.recentInbound) ? res.recentInbound : [];
@@ -678,10 +693,10 @@ function getOutboundForm() {
     </form>`;
 }
 
-/* ================ 變更密碼綁定（綁 dashboard 卡片） ================ */
+/* ================ 變更密碼綁定 ================ */
 function bindChangePasswordForm() {
   const form = document.getElementById('changePwdForm');
-  if (!form) return;
+  if (!form) return; // 該頁沒有此區塊則略過
 
   const oldPwdEl = document.getElementById('oldPassword');
   const newPwdEl = document.getElementById('newPassword');
@@ -691,23 +706,28 @@ function bindChangePasswordForm() {
   const adminDetails = form.querySelector('details');
 
   // 依角色顯示/隱藏管理員選項
-  const me = auth.getUserInfo();
-  const isAdmin = !!(me && me.role === 'admin');
-  if (adminDetails) {
-    if (isAdmin) {
-      adminDetails.classList.add('admin-reset');
-      adminDetails.style.display = '';
-    } else {
-      adminDetails.open = false;
-      adminDetails.style.display = 'none';
-      if (targetIdEl) targetIdEl.value = '';
-      if (targetNameEl) targetNameEl.value = '';
+  try {
+    const me = auth.getUserInfo();
+    const isAdmin = !!(me && me.role === 'admin');
+    if (adminDetails) {
+      if (isAdmin) {
+        adminDetails.style.display = '';
+      } else {
+        adminDetails.open = false;
+        adminDetails.style.display = 'none';
+        if (targetIdEl) targetIdEl.value = '';
+        if (targetNameEl) targetNameEl.value = '';
+      }
     }
-  }
+  } catch (_) {}
 
+  // 提交處理
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (msgEl) { msgEl.hidden = true; msgEl.textContent = ''; msgEl.className = 'form-message'; }
+    if (msgEl) { msgEl.hidden = true; msgEl.textContent = ''; }
+
+    const me = auth.getUserInfo && auth.getUserInfo();
+    const isAdmin = !!(me && me.role === 'admin');
 
     const oldPassword = (oldPwdEl?.value || '').trim();
     const newPassword = (newPwdEl?.value || '').trim();
@@ -726,7 +746,7 @@ function bindChangePasswordForm() {
     try {
       showLoading(true);
       const res = await auth.changePassword({
-        oldPassword: oldPassword || undefined,
+        oldPassword: isAdmin ? (oldPassword || undefined) : (oldPassword || undefined),
         newPassword,
         targetUserId: isAdmin ? (targetUserId || undefined) : undefined,
         targetUsername: isAdmin ? (targetUsername || undefined) : undefined
@@ -734,7 +754,6 @@ function bindChangePasswordForm() {
 
       if (msgEl) {
         msgEl.textContent = res?.message || (res?.success ? '密碼已更新' : '更新失敗');
-        msgEl.classList.add(res?.success ? 'success' : 'error');
         msgEl.hidden = false;
       }
       form.reset();
@@ -753,10 +772,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!auth.requireAuth()) return;
 
   setupNavigation();
-  setupUserMenu();          // ← 新增：綁定右上使用者選單與登出
-  bindChangePasswordForm(); // ← 變更密碼表單
+  setupUserMenu();
+  bindChangePasswordForm();
 
-  // 預載清單（讓表單下拉可用）
+  // 預載清單（讓下拉表單有資料；失敗亦不阻擋頁面）
   try {
     const [p, s, c] = await Promise.all([
       auth.apiCall('products',  'GET'),

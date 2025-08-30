@@ -630,12 +630,87 @@ function getOutboundForm() {
     </form>`;
 }
 
+/* ================ 變更密碼綁定（新增） ================ */
+// 綁定「變更密碼」表單（dashboard.html 末尾那張卡片）
+function bindChangePasswordForm() {
+  const form = document.getElementById('changePwdForm');
+  if (!form) return; // 若該頁沒有這張卡片就略過
+
+  const oldPwdEl = document.getElementById('oldPassword');
+  const newPwdEl = document.getElementById('newPassword');
+  const targetIdEl = document.getElementById('targetUserId');
+  const targetNameEl = document.getElementById('targetUsername');
+  const msgEl = document.getElementById('changePwdMsg');
+  const adminDetails = form.querySelector('details');
+
+  // 依角色顯示/隱藏管理員選項
+  const me = auth.getUserInfo();
+  const isAdmin = !!(me && me.role === 'admin');
+  if (adminDetails) {
+    if (isAdmin) {
+      adminDetails.style.display = '';
+    } else {
+      adminDetails.open = false;
+      adminDetails.style.display = 'none';
+      if (targetIdEl) targetIdEl.value = '';
+      if (targetNameEl) targetNameEl.value = '';
+    }
+  }
+
+  // 提交處理
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (msgEl) { msgEl.hidden = true; msgEl.textContent = ''; }
+
+    const oldPassword = (oldPwdEl?.value || '').trim();
+    const newPassword = (newPwdEl?.value || '').trim();
+    const targetUserId = (targetIdEl?.value || '').trim();
+    const targetUsername = (targetNameEl?.value || '').trim();
+
+    // 一般使用者不可指定目標
+    if (!isAdmin && (targetUserId || targetUsername)) {
+      notify('error', '只有管理員可以重設他人密碼');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      notify('warning', '新密碼至少 8 碼');
+      return;
+    }
+
+    try {
+      showLoading(true);
+      const res = await auth.changePassword({
+        oldPassword: oldPassword || undefined,   // 管理員重設他人時可不填
+        newPassword,
+        targetUserId: isAdmin ? (targetUserId || undefined) : undefined,
+        targetUsername: isAdmin ? (targetUsername || undefined) : undefined
+      });
+
+      // auth.changePassword 內部已處理通知/自動登出與導回登入
+      if (msgEl) {
+        msgEl.textContent = res?.message || (res?.success ? '密碼已更新' : '更新失敗');
+        msgEl.hidden = false;
+      }
+      form.reset();
+    } catch (err) {
+      console.error(err);
+      notify('error', '變更密碼失敗，請稍後重試');
+    } finally {
+      showLoading(false);
+    }
+  });
+}
+
 /* ================ 初始流程 ================= */
 document.addEventListener('DOMContentLoaded', async () => {
   // 必須已登入
   if (!auth.requireAuth()) return;
 
   setupNavigation();
+
+  // 綁定變更密碼表單（新增）
+  bindChangePasswordForm();
 
   // 先取幾個快取，讓表單下拉可用（即使失敗也不阻擋頁面）
   try {

@@ -1,6 +1,24 @@
 /**
- * 認證相關功能
+ * 認證相關功能（內建 showNotification 相容層）
  */
+
+/* ===== 相容層：若沒有 showNotification，改用 notify / alert ===== */
+(function () {
+  if (typeof window !== 'undefined' && typeof window.showNotification !== 'function') {
+    window.showNotification = function (type, title, message, timeoutMs) {
+      const msg = [title, message].filter(Boolean).join(' - ');
+      if (typeof window.notify === 'function') {
+        window.notify(type || 'info', msg);
+      } else if (typeof console !== 'undefined') {
+        console.log(`[${type || 'info'}] ${msg}`);
+        try { if (type === 'error') console.error(msg); } catch (_) {}
+        try { if (type === 'warning') console.warn(msg); } catch (_) {}
+        try { if (type === 'success' || type === 'info') console.log(msg); } catch (_) {}
+      }
+      try { if (!window.notify) alert(msg); } catch (_) {}
+    };
+  }
+})();
 
 class Auth {
   constructor() {
@@ -25,11 +43,9 @@ class Auth {
   /** 載入儲存的會話 */
   loadSession() {
       try {
-          // 先讀 localStorage（記住我）
           let token = localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
           let userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO);
 
-          // 若沒有，再讀 sessionStorage（一般登入）
           if (!token || !userInfo) {
               token = token || sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
               userInfo = userInfo || sessionStorage.getItem(STORAGE_KEYS.USER_INFO);
@@ -262,7 +278,6 @@ class Auth {
           if (res.success) {
               showNotification('success', '成功', res.message || '密碼已更新');
 
-              // 安全做法：改密碼後強制登出
               try { await this.apiCall('logout', 'POST'); } catch (_) {}
               this.clearSession();
               this.redirectToLogin();
@@ -279,7 +294,7 @@ class Auth {
       }
   }
 
-  /** API 呼叫（FormData 版本，避免 CORS） */
+  /** API 呼叫 */
   async apiCall(endpoint, method = 'GET', data = null) {
       const url = new URL(CONFIG.GAS_URL);
       url.searchParams.set('path', 'api');

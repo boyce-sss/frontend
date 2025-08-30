@@ -25,8 +25,15 @@ class Auth {
   /** 載入儲存的會話 */
   loadSession() {
       try {
-          const token = localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
-          const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO);
+          // 先讀 localStorage（記住我）
+          let token = localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+          let userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO);
+
+          // 若沒有，再讀 sessionStorage（一般登入）
+          if (!token || !userInfo) {
+              token = token || sessionStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+              userInfo = userInfo || sessionStorage.getItem(STORAGE_KEYS.USER_INFO);
+          }
 
           if (token && userInfo) {
               this.sessionToken = token;
@@ -229,6 +236,46 @@ class Auth {
           this.clearSession();
           showNotification('info', '已登出', '您已成功登出系統。');
           this.redirectToLogin();
+      }
+  }
+
+  /** 變更密碼 / 管理員重設密碼 */
+  async changePassword({ oldPassword, newPassword, targetUserId, targetUsername }) {
+      if (!this.isLoggedIn()) {
+          showNotification('error', '尚未登入', '請先登入後再操作。');
+          this.redirectToLogin();
+          return { success: false };
+      }
+
+      if (!newPassword || newPassword.length < 8) {
+          showNotification('warning', '密碼太短', '請輸入至少 8 碼的新密碼。');
+          return { success: false };
+      }
+
+      const payload = { newPassword };
+      if (oldPassword) payload.oldPassword = oldPassword;
+      if (targetUserId) payload.targetUserId = targetUserId;
+      if (targetUsername) payload.targetUsername = targetUsername;
+
+      try {
+          const res = await this.apiCall('changePassword', 'POST', payload);
+          if (res.success) {
+              showNotification('success', '成功', res.message || '密碼已更新');
+
+              // 安全做法：改密碼後強制登出
+              try { await this.apiCall('logout', 'POST'); } catch (_) {}
+              this.clearSession();
+              this.redirectToLogin();
+
+              return res;
+          } else {
+              showNotification('error', '失敗', res.message || '密碼更新失敗');
+              return res;
+          }
+      } catch (err) {
+          console.error('changePassword 錯誤:', err);
+          showNotification('error', '錯誤', '網路或服務異常，請稍後再試。');
+          return { success: false };
       }
   }
 

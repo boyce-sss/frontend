@@ -29,16 +29,20 @@
       <a href="#" class="nav-link" data-page="customers"><i class="fas fa-users"></i><span>客戶</span></a>
     </div>
 
-    <!-- 使用者選單（新增） -->
-    <div class="nav-user">
-      <button id="btnUserMenu" class="user-btn">
+    <!-- 使用者選單（修正命名以符合 app.js 綁定） -->
+    <div class="user-menu">
+      <button id="userMenuBtn" class="user-menu-btn" aria-haspopup="true" aria-expanded="false">
         <i class="fas fa-user-circle"></i>
-        <span id="navUsername">使用者</span>
+        <span id="userNameSpan">使用者</span>
         <i class="fas fa-caret-down"></i>
       </button>
-      <div class="user-dropdown" id="userDropdown">
-        <button id="openChangePwd" class="dropdown-item"><i class="fas fa-key"></i> 變更密碼</button>
-        <button id="btnLogout" class="dropdown-item"><i class="fas fa-right-from-bracket"></i> 登出</button>
+      <div class="user-dropdown" id="userDropdown" role="menu" aria-labelledby="userMenuBtn">
+        <button id="openChangePwd" class="dropdown-item" type="button">
+          <i class="fas fa-key"></i> 變更密碼
+        </button>
+        <button id="logoutBtn" class="dropdown-item" type="button">
+          <i class="fas fa-right-from-bracket"></i> 登出
+        </button>
       </div>
     </div>
 
@@ -282,5 +286,19 @@
   <script src="js/config.js?v=1" defer></script>
   <script src="js/auth.js?v=1" defer></script>
   <script src="js/app.js?v=1" defer></script>
+
+  <!-- 小補強：點「變更密碼」直接滾動到卡片（不影響 app.js） -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('openChangePwd');
+      const card = document.getElementById('changePasswordCard');
+      if (btn && card) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    });
+  </script>
 </body>
 </html>

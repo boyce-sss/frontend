@@ -29,6 +29,20 @@ function notify(type, text) {
   setTimeout(() => box.classList.remove('show'), 3000);
 }
 
+/* === 與 auth.js 相容：showNotification 包裝 notify ===
+   用法：showNotification(type, title, message, durationMs=3000)
+   type: 'success' | 'info' | 'warning' | 'error'
+   durationMs=0 代表不自動關閉 */
+function showNotification(type, title, message, duration = 3000) {
+  const text = [title, message].filter(Boolean).join('：');
+  const box = ensureNotifyContainer();
+  box.className = `notification ${type} show`;
+  box.textContent = text || '';
+  if (duration === 0) return;
+  clearTimeout(box._t);
+  box._t = setTimeout(() => box.classList.remove('show'), duration);
+}
+
 // 後端回傳相容：支援 {success, data} 或直接 []
 function asList(res) {
   if (!res) return [];

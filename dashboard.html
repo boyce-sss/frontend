@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>倉庫管理系統 - 儀表板</title>
+
+  <!-- FontAwesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+
+  <!-- 自訂樣式（根目錄下的 css/styles.css） -->
+  <link href="css/styles.css" rel="stylesheet"/>
+</head>
+<body>
+  <!-- 導覽列 -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <i class="fas fa-warehouse"></i>
+      <span>倉庫管理系統</span>
+    </div>
+
+    <div class="nav-menu">
+      <a href="#" class="nav-link active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i><span>儀表板</span></a>
+      <a href="#" class="nav-link" data-page="products"><i class="fas fa-box"></i><span>商品管理</span></a>
+      <a href="#" class="nav-link" data-page="inventory"><i class="fas fa-archive"></i><span>庫存管理</span></a>
+      <a href="#" class="nav-link" data-page="inbound"><i class="fas fa-truck"></i><span>進貨管理</span></a>
+      <a href="#" class="nav-link" data-page="outbound"><i class="fas fa-shipping-fast"></i><span>出貨管理</span></a>
+      <a href="#" class="nav-link" data-page="suppliers"><i class="fas fa-industry"></i><span>供應商</span></a>
+      <a href="#" class="nav-link" data-page="customers"><i class="fas fa-users"></i><span>客戶</span></a>
+    </div>
+
+    <div class="nav-toggle"><i class="fas fa-bars"></i></div>
+  </nav>
+
+  <!-- 主要內容 -->
+  <div class="main-content">
+    <!-- 載入中 -->
+    <div id="loading" class="loading-overlay">
+      <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>載入中...</p>
+      </div>
+    </div>
+
+    <!-- 通知 -->
+    <div id="notification" class="notification"></div>
+
+    <!-- 儀表板 -->
+    <div id="dashboard" class="page active">
+      <div class="page-header">
+        <h1><i class="fas fa-tachometer-alt"></i> 儀表板</h1>
+        <p>系統概況與統計資料</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-box"></i></div>
+          <div class="stat-content">
+            <h3 id="totalProducts">0</h3>
+            <p>總商品數</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-archive"></i></div>
+          <div class="stat-content">
+            <h3 id="totalInventory">0</h3>
+            <p>總庫存數</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="stat-content">
+            <h3 id="lowStockCount">0</h3>
+            <p>低庫存商品</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+          <div class="stat-content">
+            <h3 id="monthlyTransactions">0</h3>
+            <p>本月交易</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="recent-activity">
+          <h3>最近活動</h3>
+          <div id="recentActivity" class="activity-list"></div>
+        </div>
+
+        <div class="low-stock-alert">
+          <h3>低庫存警告</h3>
+          <div id="lowStockItems" class="alert-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 商品管理 -->
+    <div id="products" class="page">
+      <div class="page-header">
+        <h1><i class="fas fa-box"></i> 商品管理</h1>
+        <button class="btn btn-primary" onclick="showAddProductModal()"><i class="fas fa-plus"></i> 新增商品</button>
+      </div>
+      <div class="content-card">
+        <div class="table-container">
+          <table id="productsTable" class="data-table">
+            <thead>
+              <tr>
+                <th>商品ID</th><th>商品名稱</th><th>分類</th><th>規格</th><th>成本價</th><th>售價</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 庫存管理 -->
+    <div id="inventory" class="page">
+      <div class="page-header"><h1><i class="fas fa-archive"></i> 庫存管理</h1></div>
+      <div class="content-card">
+        <div class="table-container">
+          <table id="inventoryTable" class="data-table">
+            <thead>
+              <tr>
+                <th>商品ID</th><th>商品名稱</th><th>當前庫存</th><th>可用庫存</th><th>預留庫存</th><th>狀態</th><th>最後更新</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 進貨管理 -->
+    <div id="inbound" class="page">
+      <div class="page-header">
+        <h1><i class="fas fa-truck"></i> 進貨管理</h1>
+        <button class="btn btn-primary" onclick="showAddInboundModal()"><i class="fas fa-plus"></i> 新增進貨</button>
+      </div>
+      <div class="content-card">
+        <div class="table-container">
+          <table id="inboundTable" class="data-table">
+            <thead>
+              <tr>
+                <th>進貨單號</th><th>商品名稱</th><th>供應商</th><th>數量</th><th>單價</th><th>總金額</th><th>進貨日期</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 出貨管理 -->
+    <div id="outbound" class="page">
+      <div class="page-header">
+        <h1><i class="fas fa-shipping-fast"></i> 出貨管理</h1>
+        <button class="btn btn-primary" onclick="showAddOutboundModal()"><i class="fas fa-plus"></i> 新增出貨</button>
+      </div>
+      <div class="content-card">
+        <div class="table-container">
+          <table id="outboundTable" class="data-table">
+            <thead>
+              <tr>
+                <th>出貨單號</th><th>商品名稱</th><th>客戶</th><th>數量</th><th>單價</th><th>總金額</th><th>出貨日期</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 供應商管理 -->
+    <div id="suppliers" class="page">
+      <div class="page-header">
+        <h1><i class="fas fa-industry"></i> 供應商管理</h1>
+        <button class="btn btn-primary" onclick="showAddSupplierModal()"><i class="fas fa-plus"></i> 新增供應商</button>
+      </div>
+      <div class="content-card">
+        <div class="table-container">
+          <table id="suppliersTable" class="data-table">
+            <thead>
+              <tr>
+                <th>供應商ID</th><th>供應商名稱</th><th>聯絡人</th><th>電話</th><th>地址</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 客戶管理 -->
+    <div id="customers" class="page">
+      <div class="page-header">
+        <h1><i class="fas fa-users"></i> 客戶管理</h1>
+        <button class="btn btn-primary" onclick="showAddCustomerModal()"><i class="fas fa-plus"></i> 新增客戶</button>
+      </div>
+      <div class="content-card">
+        <div class="table-container">
+          <table id="customersTable" class="data-table">
+            <thead>
+              <tr>
+                <th>客戶ID</th><th>客戶名稱</th><th>聯絡人</th><th>電話</th><th>地址</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 容器 -->
+  <div id="modalContainer"></div>
+
+  <!-- JavaScript（務必加 defer，並確保這三個檔案存在） -->
+  <script src="js/config.js?v=1" defer></script>
+  <script src="js/auth.js?v=1" defer></script>
+  <script src="js/app.js?v=1" defer></script>
+</body>
+</html>

@@ -29,6 +29,19 @@
       <a href="#" class="nav-link" data-page="customers"><i class="fas fa-users"></i><span>客戶</span></a>
     </div>
 
+    <!-- 使用者選單（新增） -->
+    <div class="nav-user">
+      <button id="btnUserMenu" class="user-btn">
+        <i class="fas fa-user-circle"></i>
+        <span id="navUsername">使用者</span>
+        <i class="fas fa-caret-down"></i>
+      </button>
+      <div class="user-dropdown" id="userDropdown">
+        <button id="openChangePwd" class="dropdown-item"><i class="fas fa-key"></i> 變更密碼</button>
+        <button id="btnLogout" class="dropdown-item"><i class="fas fa-right-from-bracket"></i> 登出</button>
+      </div>
+    </div>
+
     <div class="nav-toggle"><i class="fas fa-bars"></i></div>
   </nav>
 
@@ -98,44 +111,50 @@
         </div>
       </div>
 
-      <!-- ✅ 新增：變更密碼區塊（維持原架構、僅在儀表板末尾加一張卡片） -->
-      <div class="content-card" id="changePwdSection" style="margin-top:16px;">
-        <h3><i class="fas fa-key"></i> 變更密碼</h3>
-        <form id="changePwdForm" class="form">
+      <!-- 變更密碼（美化版卡片） -->
+      <div class="content-card change-password-card" id="changePasswordCard">
+        <div class="card-header">
+          <h3><i class="fas fa-key"></i> 變更密碼</h3>
+          <p class="subtext">為了安全，變更成功後系統會自動登出並導回登入頁。</p>
+        </div>
+
+        <form id="changePwdForm" class="form-grid">
           <div class="form-row">
-            <label>舊密碼（一般使用者必填）
-              <input type="password" id="oldPassword" autocomplete="current-password" placeholder="請輸入目前的密碼">
-            </label>
-          </div>
-          <div class="form-row">
-            <label>新密碼（至少 8 碼）
-              <input type="password" id="newPassword" minlength="8" required autocomplete="new-password" placeholder="請輸入新密碼">
-            </label>
+            <div class="form-group">
+              <label for="oldPassword">舊密碼（一般使用者必填）</label>
+              <input type="password" id="oldPassword" placeholder="請輸入目前密碼" autocomplete="current-password">
+            </div>
+            <div class="form-group">
+              <label for="newPassword">新密碼 <small>(至少 8 碼)</small></label>
+              <input type="password" id="newPassword" placeholder="請輸入新密碼" required minlength="8" autocomplete="new-password">
+            </div>
           </div>
 
-          <!-- 管理員可選擇重設他人（擇一） -->
-          <details style="margin:8px 0;">
-            <summary><i class="fas fa-user-shield"></i> 管理員選項：重設他人密碼（選填）</summary>
+          <!-- 管理員專用：可重設他人密碼 -->
+          <details class="admin-reset">
+            <summary><i class="fas fa-user-shield"></i> 管理員重設他人密碼（選填）</summary>
             <div class="form-row">
-              <label>目標使用者 ID
-                <input type="text" id="targetUserId" placeholder="例如 U12345">
-              </label>
+              <div class="form-group">
+                <label for="targetUserId">目標使用者 ID</label>
+                <input type="text" id="targetUserId" placeholder="例如：U123">
+              </div>
+              <div class="form-group">
+                <label for="targetUsername">或帳號/名稱</label>
+                <input type="text" id="targetUsername" placeholder="帳號 或 使用者名稱（二擇一）">
+              </div>
             </div>
-            <div class="form-row">
-              <label>或帳號/名稱
-                <input type="text" id="targetUsername" placeholder="例如 alice">
-              </label>
-            </div>
-            <p class="hint">二擇一填入即可；若同時填寫，將優先使用「使用者 ID」。一般使用者請勿填。</p>
+            <p class="hint">若填寫此區塊，系統將忽略「舊密碼」，直接重設目標使用者的新密碼。</p>
           </details>
 
-          <div class="form-row">
-            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 更新密碼</button>
+          <div class="form-actions">
+            <button class="btn btn-secondary" type="reset">清除</button>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> 更新密碼</button>
           </div>
-          <p id="changePwdMsg" class="hint" hidden></p>
+
+          <div id="changePwdMsg" class="form-message" hidden></div>
         </form>
       </div>
-      <!-- ✅ 變更密碼區塊結束 -->
+      <!-- 變更密碼區塊結束 -->
     </div>
 
     <!-- 商品管理 -->

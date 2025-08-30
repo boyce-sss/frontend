@@ -97,6 +97,45 @@
           <div id="lowStockItems" class="alert-list"></div>
         </div>
       </div>
+
+      <!-- ✅ 新增：變更密碼區塊（維持原架構、僅在儀表板末尾加一張卡片） -->
+      <div class="content-card" id="changePwdSection" style="margin-top:16px;">
+        <h3><i class="fas fa-key"></i> 變更密碼</h3>
+        <form id="changePwdForm" class="form">
+          <div class="form-row">
+            <label>舊密碼（一般使用者必填）
+              <input type="password" id="oldPassword" autocomplete="current-password" placeholder="請輸入目前的密碼">
+            </label>
+          </div>
+          <div class="form-row">
+            <label>新密碼（至少 8 碼）
+              <input type="password" id="newPassword" minlength="8" required autocomplete="new-password" placeholder="請輸入新密碼">
+            </label>
+          </div>
+
+          <!-- 管理員可選擇重設他人（擇一） -->
+          <details style="margin:8px 0;">
+            <summary><i class="fas fa-user-shield"></i> 管理員選項：重設他人密碼（選填）</summary>
+            <div class="form-row">
+              <label>目標使用者 ID
+                <input type="text" id="targetUserId" placeholder="例如 U12345">
+              </label>
+            </div>
+            <div class="form-row">
+              <label>或帳號/名稱
+                <input type="text" id="targetUsername" placeholder="例如 alice">
+              </label>
+            </div>
+            <p class="hint">二擇一填入即可；若同時填寫，將優先使用「使用者 ID」。一般使用者請勿填。</p>
+          </details>
+
+          <div class="form-row">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 更新密碼</button>
+          </div>
+          <p id="changePwdMsg" class="hint" hidden></p>
+        </form>
+      </div>
+      <!-- ✅ 變更密碼區塊結束 -->
     </div>
 
     <!-- 商品管理 -->

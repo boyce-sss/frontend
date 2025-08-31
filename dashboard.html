@@ -29,17 +29,18 @@
       <a href="#" class="nav-link" data-page="customers"><i class="fas fa-users"></i><span>客戶</span></a>
     </div>
 
-    <!-- 使用者選單（id 修正為 btnUserMenu） -->
+    <!-- 使用者選單（請放在 .navbar 裡的右側） -->
     <div class="user-menu">
-      <button id="btnUserMenu" class="user-menu-btn" aria-haspopup="true" aria-expanded="false">
+      <button id="userMenuBtn" class="user-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">
         <i class="fas fa-user-circle"></i>
         <span id="userNameSpan">使用者</span>
-        <i class="fas fa-caret-down"></i>
+        <i class="fas fa-chevron-down" style="font-size:.85em;"></i>
       </button>
-      <div class="user-dropdown" id="userDropdown" role="menu" aria-labelledby="btnUserMenu">
-        <button id="logoutBtn" class="dropdown-item" type="button">
-          <i class="fas fa-right-from-bracket"></i> 登出
-        </button>
+    
+      <div id="userDropdown" class="user-dropdown" role="menu">
+        <!-- 需要的話可加變更密碼等項目 -->
+        <!-- <button class="dropdown-item" id="openChangePwd"><i class="fas fa-key"></i> 變更密碼</button> -->
+        <button class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> 登出</button>
       </div>
     </div>
 
@@ -367,3 +368,4 @@
   </script>
 </body>
 </html>
+

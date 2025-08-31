@@ -402,24 +402,33 @@ async function loadCustomers() {
 /* ================ 新增 / 刪除（示範，編輯先保留） ================ */
 function showAddProductModal() {
   showModal('新增商品', getProductForm());
-  // 讓「自動產生商品ID」切換（預設勾選 → 只讀；取消勾選 → 可輸入）
+  // 讓「自動產生商品ID」切換（預設勾選 → disabled；取消勾選 → 可輸入）
   initProductFormBehaviors();
   setupFormHandler('productForm', async (payload) => {
-    // 若使用者取消勾選並手動輸入，就把商品ID傳給後端；否則不帶（由後端自動生成）
+    // —— 修正版：只在手動輸入時帶 商品ID，並轉大寫＋驗證 ——
+    const manualIdRaw = (payload['商品ID'] || '').toString().trim();
+    const manualId = manualIdRaw ? manualIdRaw.toUpperCase() : '';
+
+    if (manualId) {
+      const re = /^[A-Z0-9\-]{3,20}$/;
+      if (!re.test(manualId)) {
+        throw new Error('【商品ID】格式不符（僅限 A-Z/0-9/-，3~20 碼）');
+      }
+    }
+
     const body = {
-      // 商品ID（可選）
-      ...(payload['商品ID'] ? { '商品ID': String(payload['商品ID']).trim() } : {}),
-      // 其它欄位
-      '商品名稱': payload['商品名稱'],
-      '商品分類': payload['商品分類'],
-      '規格': payload['規格'],
-      '單位': payload['單位'],
-      '成本價': payload['成本價'],
-      '售價': payload['售價'],
-      '最低庫存': payload['最低庫存'],
-      '最高庫存': payload['最高庫存'],
-      '備註': payload['備註']
+      ...(manualId ? { '商品ID': manualId } : {}),
+      '商品名稱': (payload['商品名稱'] || '').trim(),
+      '商品分類': (payload['商品分類'] || '').trim(),
+      '規格': (payload['規格'] || '').trim(),
+      '單位': (payload['單位'] || '').trim(),
+      '成本價': Number(payload['成本價'] || 0),
+      '售價': Number(payload['售價'] || 0),
+      '最低庫存': Number(payload['最低庫存'] || 0),
+      '最高庫存': Number(payload['最高庫存'] || 0),
+      '備註': (payload['備註'] || '').trim()
     };
+
     const res = await auth.apiCall('products', 'POST', body);
     if (res?.success === false) throw new Error(res?.message || '新增商品失敗');
     await loadProducts();
@@ -721,18 +730,24 @@ function initProductFormBehaviors() {
   const idInput = document.getElementById('productIdInput');
   if (!autoChk || !idInput) return;
 
-  // 依勾選狀態切換 readonly
+  // 讓瀏覽器有更友善的提示
+  idInput.setAttribute('pattern', '[A-Z0-9\\-]{3,20}');
+  idInput.setAttribute('title', '僅限 A-Z / 0-9 / -，長度 3~20');
+
   const applyState = () => {
     if (autoChk.checked) {
+      // 自動模式：避免送出空欄位 → disabled（FormData 會忽略）
       idInput.value = '';
       idInput.readOnly = true;
-      idInput.setAttribute('readonly', 'readonly'); // 確保屬性層級也鎖定
+      idInput.disabled = true;
     } else {
+      // 手動模式：允許輸入
       idInput.readOnly = false;
-      idInput.removeAttribute('readonly'); // 移除屬性，避免無法輸入
+      idInput.disabled = false;
       idInput.focus();
     }
   };
+
   autoChk.addEventListener('change', applyState);
   applyState();
 }

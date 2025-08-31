@@ -564,8 +564,7 @@ async function deleteOutbound(no) {
   }
 }
 
-// 先保留編輯功能占位
-function editProduct()  { notify('info', '編輯商品功能開發中'); }
+// 先保留編輯功能占位（⬇️ 已替換為正式功能）
 function editSupplier() { notify('info', '編輯供應商功能開發中'); }
 function editCustomer() { notify('info', '編輯客戶功能開發中'); }
 
@@ -765,6 +764,118 @@ function initProductFormBehaviors() {
 
   autoChk.addEventListener('change', applyState);
   applyState();
+}
+
+/* =============== 新增：編輯商品相關（只改前端 app.js） =============== */
+// 轉義 attribute 值，避免引號/符號造成 HTML 斷裂
+function _escAttr(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// 產生「編輯商品」的表單（ID 固定唯讀，無自動ID切換）
+function getProductEditForm(p) {
+  return `
+    <form id="productEditForm">
+      <div class="form-group">
+        <label>商品ID</label>
+        <input name="商品ID" value="${_escAttr(p['商品ID'])}" readonly>
+        <small class="hint" style="color:#6b7280;display:block;margin-top:.25rem;">商品ID不可變更</small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group"><label>商品名稱</label>
+          <input name="商品名稱" required value="${_escAttr(p['商品名稱'])}">
+        </div>
+        <div class="form-group"><label>商品分類</label>
+          <input name="商品分類" required value="${_escAttr(p['商品分類'])}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group"><label>規格</label>
+          <input name="規格" value="${_escAttr(p['規格'])}">
+        </div>
+        <div class="form-group"><label>單位</label>
+          <input name="單位" required value="${_escAttr(p['單位'])}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group"><label>成本價</label>
+          <input name="成本價" type="number" step="0.01" required value="${_escAttr(p['成本價'] ?? '')}">
+        </div>
+        <div class="form-group"><label>售價</label>
+          <input name="售價" type="number" step="0.01" required value="${_escAttr(p['售價'] ?? '')}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group"><label>最低庫存</label>
+          <input name="最低庫存" type="number" required value="${_escAttr(p['最低庫存'] ?? 0)}">
+        </div>
+        <div class="form-group"><label>最高庫存</label>
+          <input name="最高庫存" type="number" required value="${_escAttr(p['最高庫存'] ?? 0)}">
+        </div>
+      </div>
+
+      <div class="form-group"><label>備註</label>
+        <textarea name="備註" rows="3">${_escAttr(p['備註'] ?? '')}</textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>`;
+}
+
+// 打開編輯商品的 Modal，並在送出時呼叫 PUT /products
+function showEditProductModal(p) {
+  showModal('編輯商品', getProductEditForm(p));
+  setupFormHandler('productEditForm', async (payload) => {
+    // 後端 PUT：必須帶『商品ID』，其它欄位可自由更新
+    const body = {
+      '商品ID': String(payload['商品ID']).trim(),
+      '商品名稱': (payload['商品名稱'] || '').trim(),
+      '商品分類': (payload['商品分類'] || '').trim(),
+      '規格': (payload['規格'] || '').trim(),
+      '單位': (payload['單位'] || '').trim(),
+      '成本價': Number(payload['成本價'] || 0),
+      '售價': Number(payload['售價'] || 0),
+      '最低庫存': Number(payload['最低庫存'] || 0),
+      '最高庫存': Number(payload['最高庫存'] || 0),
+      '備註': (payload['備註'] || '').trim()
+    };
+    const res = await auth.apiCall('products', 'PUT', body);
+    if (res?.success === false) throw new Error(res?.message || '更新商品失敗');
+    await loadProducts();
+  });
+}
+
+// 取代原本的占位函式：從快取找商品→打開編輯
+async function editProduct(id) {
+  try {
+    if (!id) return;
+    // 確保快取存在，若沒有則先載入
+    if (!Array.isArray(window._productsCache)) {
+      const res = await auth.apiCall('products', 'GET');
+      window._productsCache = asList(res);
+    }
+    const p = (window._productsCache || []).find(x => String(x['商品ID']) === String(id));
+    if (!p) {
+      notify('error', '找不到該商品資料，請重新整理列表');
+      return;
+    }
+    showEditProductModal(p);
+  } catch (err) {
+    console.error(err);
+    notify('error', '開啟編輯視窗失敗');
+  }
 }
 
 /* ================ 變更密碼綁定 ================ */

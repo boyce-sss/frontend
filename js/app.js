@@ -125,7 +125,7 @@ function setupUserMenu() {
     });
     // 點外面關閉
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.user-menu')) {
+      if (!e.target.closest('.user-menu, .nav-user')) {
         dropdown.classList.remove('show');
       }
     });

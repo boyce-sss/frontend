@@ -4,7 +4,7 @@
 // 1) UI/工具方法（notify、showLoading、showNotification shim）
 // 2) 導覽列分頁切換、右上使用者下拉選單（登出）
 // 3) 儀表板/商品/庫存/進出貨/供應商/客戶 載入
-// 4) 新增/刪除操作與 Modal 表單（商品改用內建 Modal）
+// 4) 新增/刪除操作與 Modal 表單
 // 5) 變更密碼表單綁定
 // 6) DOMContentLoaded 初始化流程
 // ----------------------------------------------------
@@ -105,7 +105,7 @@ function setupNavigation() {
 
 /* ================ 右上使用者選單（登出） ================= */
 function setupUserMenu() {
-  const btn = $('#btnUserMenu');            // ← 對齊 dashboard.html
+  const btn = $('#userMenuBtn');
   const dropdown = $('#userDropdown');
   const logoutBtn = $('#logoutBtn');
   const nameSpan = $('#userNameSpan');
@@ -122,14 +122,11 @@ function setupUserMenu() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       dropdown.classList.toggle('show');
-      const expanded = dropdown.classList.contains('show');
-      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     });
     // 點外面關閉
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.user-menu')) {
         dropdown.classList.remove('show');
-        btn.setAttribute('aria-expanded', 'false');
       }
     });
   }
@@ -225,11 +222,12 @@ async function loadProducts() {
     const list = asList(res);
     const tbody = $('#productsTable tbody');
     if (tbody) {
+      // 修正欄位數與 thead 一致（不再輸出「當前庫存」）
       tbody.innerHTML = list.map(p => `
         <tr>
           <td>${p['商品ID'] || ''}</td>
           <td>${p['商品名稱'] || ''}</td>
-          <td>${p['分類'] || p['商品分類'] || ''}</td>
+          <td>${p['商品分類'] || ''}</td>
           <td>${p['規格'] || ''}</td>
           <td>${p['成本價'] ?? ''}</td>
           <td>${p['售價'] ?? ''}</td>
@@ -401,138 +399,33 @@ async function loadCustomers() {
   }
 }
 
-/* ================ 新增 / 刪除（商品改用內建 Modal） ================ */
-
-// 通用：開關內建 Modal（for #modalAddProduct）
-function openModalById(id) {
-  const m = document.getElementById(id);
-  if (!m) return;
-  m.hidden = false;
-  m.setAttribute('aria-hidden', 'false');
-  // 關閉機制：背景與關閉鈕
-  const backdrop = m.querySelector('.modal-backdrop');
-  const closer = m.querySelector('.modal-close');
-  const stop = (e) => e.stopPropagation();
-  m.addEventListener('click', closeOnBackdrop);
-  if (backdrop) backdrop.addEventListener('click', closeOnBackdrop);
-  if (closer) closer.addEventListener('click', () => closeModalById(id));
-  m.querySelector('.modal-dialog')?.addEventListener('click', stop);
-
-  function closeOnBackdrop(e) {
-    if (e.target === m || e.target === backdrop) {
-      closeModalById(id);
-    }
-  }
-}
-
-function closeModalById(id) {
-  const m = document.getElementById(id);
-  if (!m) return;
-  m.hidden = true;
-  m.setAttribute('aria-hidden', 'true');
-  // 清理事件（簡化：直接克隆替換，避免重複綁 listener）
-  const clone = m.cloneNode(true);
-  m.parentNode.replaceChild(clone, m);
-}
-
-// 舊通用動態 Modal（供其他功能沿用：供應商/客戶/進出貨）
-function showModal(title, contentHtml) {
-  const box = $('#modalContainer');
-  if (!box) return;
-  // 若已有商品內建 Modal，仍可並存另一個 overlay
-  box.insertAdjacentHTML('beforeend', `
-    <div class="modal-overlay">
-      <div class="modal">
-        <div class="modal-header">
-          <h2>${title}</h2>
-          <button class="modal-close" onclick="closeModal()">&times;</button>
-        </div>
-        <div class="modal-content">${contentHtml}</div>
-      </div>
-    </div>`);
-  // 背景點擊關閉
-  const overlays = $all('.modal-overlay');
-  const overlay = overlays[overlays.length - 1];
-  if (overlay) {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-  }
-}
-
-function closeModal() {
-  const overlays = $all('#modalContainer .modal-overlay');
-  if (!overlays.length) return;
-  overlays[overlays.length - 1].remove();
-}
-
-// === 商品：使用內建 Modal ===
+/* ================ 新增 / 刪除（示範，編輯先保留） ================ */
 function showAddProductModal() {
-  // 打開內建 Modal
-  openModalById('modalAddProduct');
-
-  const form = $('#formAddProduct');
-  const chkManualId = $('#chkManualId');
-  const txtProductId = $('#txtProductId');
-  const msg = $('#addProductMsg');
-
-  // 初始化：關閉即清空
-  if (form) form.reset();
-  if (msg) { msg.hidden = true; msg.textContent = ''; }
-  if (txtProductId) { txtProductId.disabled = true; txtProductId.value = ''; }
-  if (chkManualId) {
-    chkManualId.checked = false;
-    chkManualId.addEventListener('change', () => {
-      if (!txtProductId) return;
-      txtProductId.disabled = !chkManualId.checked;
-      if (!chkManualId.checked) txtProductId.value = '';
-    }, { once: false });
-  }
-
-  // 綁表單送出
-  if (form) {
-    // 先移除舊的 submit 監聽（避免多次開啟疊加）
-    const newForm = form.cloneNode(true);
-    form.parentNode.replaceChild(newForm, form);
-  }
-  const form2 = $('#formAddProduct');
-  if (form2) {
-    form2.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      try {
-        showLoading(true);
-        const payload = {
-          '商品名稱': $('#txtProductName')?.value?.trim() || '',
-          '分類': $('#txtCategory')?.value?.trim() || '',
-          '規格': $('#txtSpec')?.value?.trim() || '',
-          '成本價': Number($('#txtCost')?.value || 0),
-          '售價': Number($('#txtPrice')?.value || 0),
-        };
-        // 只有勾選且有值才帶 商品ID（後端驗證格式＋唯一性）
-        if ($('#chkManualId')?.checked) {
-          const v = ($('#txtProductId')?.value || '').trim().toUpperCase();
-          if (v) payload['商品ID'] = v;
-        }
-
-        const res = await auth.apiCall('products', 'POST', payload);
-        if (res?.success === false) throw new Error(res?.message || '新增商品失敗');
-
-        notify('success', res?.message || '新增商品成功');
-        closeModalById('modalAddProduct');
-        await loadProducts();
-      } catch (err) {
-        console.error(err);
-        notify('error', err.message || '新增商品失敗');
-        const msgEl = $('#addProductMsg');
-        if (msgEl) { msgEl.hidden = false; msgEl.textContent = err.message || '新增商品失敗'; }
-      } finally {
-        showLoading(false);
-      }
-    });
-  }
+  showModal('新增商品', getProductForm());
+  // 讓「自動產生商品ID」切換（預設勾選 → 只讀；取消勾選 → 可輸入）
+  initProductFormBehaviors();
+  setupFormHandler('productForm', async (payload) => {
+    // 若使用者取消勾選並手動輸入，就把商品ID傳給後端；否則不帶（由後端自動生成）
+    const body = {
+      // 商品ID（可選）
+      ...(payload['商品ID'] ? { '商品ID': String(payload['商品ID']).trim() } : {}),
+      // 其它欄位
+      '商品名稱': payload['商品名稱'],
+      '商品分類': payload['商品分類'],
+      '規格': payload['規格'],
+      '單位': payload['單位'],
+      '成本價': payload['成本價'],
+      '售價': payload['售價'],
+      '最低庫存': payload['最低庫存'],
+      '最高庫存': payload['最高庫存'],
+      '備註': payload['備註']
+    };
+    const res = await auth.apiCall('products', 'POST', body);
+    if (res?.success === false) throw new Error(res?.message || '新增商品失敗');
+    await loadProducts();
+  });
 }
 
-// 供應商 / 客戶 / 進出貨：沿用舊的動態 Modal 流程
 function showAddSupplierModal() {
   showModal('新增供應商', getSupplierForm());
   setupFormHandler('supplierForm', async (payload) => {
@@ -652,7 +545,34 @@ function editProduct()  { notify('info', '編輯商品功能開發中'); }
 function editSupplier() { notify('info', '編輯供應商功能開發中'); }
 function editCustomer() { notify('info', '編輯客戶功能開發中'); }
 
-/* ================ Modal & 表單（動態）================= */
+/* ================ Modal & 表單 ================= */
+function showModal(title, contentHtml) {
+  const box = $('#modalContainer');
+  if (!box) return;
+  box.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>${title}</h2>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-content">${contentHtml}</div>
+      </div>
+    </div>`;
+  // 背景點擊關閉
+  const overlay = $('.modal-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+  }
+}
+
+function closeModal() {
+  const box = $('#modalContainer');
+  if (box) box.innerHTML = '';
+}
+
 function setupFormHandler(formId, onSubmit) {
   const form = document.getElementById(formId);
   if (!form) return;
@@ -675,7 +595,50 @@ function setupFormHandler(formId, onSubmit) {
   });
 }
 
-/* ================ 表單模板（動態 Modal 使用） ================= */
+/* ================ 表單模板（統一風格） ================ */
+function getProductForm() {
+  // 與進/出貨相同的排版：表單群組 + footer
+  return `
+    <form id="productForm">
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:.5rem;">
+          <input type="checkbox" id="autoProductId" checked>
+          自動產生商品ID
+        </label>
+        <small class="hint" style="color:#6b7280;display:block;margin-top:.25rem;">
+          取消勾選可自行輸入；格式：A-Z/0-9/-，3~20 碼
+        </small>
+      </div>
+      <div class="form-group">
+        <label>商品ID</label>
+        <input name="商品ID" id="productIdInput" placeholder="例如：ABC-001" readonly pattern="[A-Z0-9\\-]{3,20}">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group"><label>商品名稱</label><input name="商品名稱" required></div>
+        <div class="form-group"><label>商品分類</label><input name="商品分類" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>規格</label><input name="規格"></div>
+        <div class="form-group"><label>單位</label><input name="單位" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>成本價</label><input name="成本價" type="number" step="0.01" required></div>
+        <div class="form-group"><label>售價</label><input name="售價" type="number" step="0.01" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>最低庫存</label><input name="最低庫存" type="number" value="0" required></div>
+        <div class="form-group"><label>最高庫存</label><input name="最高庫存" type="number" value="0" required></div>
+      </div>
+      <div class="form-group"><label>備註</label><textarea name="備註" rows="3"></textarea></div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn btn-primary">新增</button>
+      </div>
+    </form>`;
+}
+
 function getSupplierForm() {
   return `
     <form id="supplierForm">
@@ -750,6 +713,28 @@ function getOutboundForm() {
         <button type="submit" class="btn btn-primary">新增出貨</button>
       </div>
     </form>`;
+}
+
+/* === 新增：商品表單行為（自動ID切換 & 可打字） === */
+function initProductFormBehaviors() {
+  const autoChk = document.getElementById('autoProductId');
+  const idInput = document.getElementById('productIdInput');
+  if (!autoChk || !idInput) return;
+
+  // 依勾選狀態切換 readonly
+  const applyState = () => {
+    if (autoChk.checked) {
+      idInput.value = '';
+      idInput.readOnly = true;
+      idInput.setAttribute('readonly', 'readonly'); // 確保屬性層級也鎖定
+    } else {
+      idInput.readOnly = false;
+      idInput.removeAttribute('readonly'); // 移除屬性，避免無法輸入
+      idInput.focus();
+    }
+  };
+  autoChk.addEventListener('change', applyState);
+  applyState();
 }
 
 /* ================ 變更密碼綁定 ================ */
@@ -850,8 +835,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 預設載入儀表板
   await loadDashboard();
-
-  // 若已在「商品管理」頁，或使用者立刻點「新增商品」，也能正常顯示
 });
 
 /* ================ 對外（HTML 會呼叫） ================ */
@@ -861,10 +844,10 @@ window.showAddCustomerModal = showAddCustomerModal;
 window.showAddInboundModal  = showAddInboundModal;
 window.showAddOutboundModal = showAddOutboundModal;
 
-window.closeModal         = closeModal;
-window.deleteProduct      = deleteProduct;
-window.deleteInbound      = deleteInbound;
-window.deleteOutbound     = deleteOutbound;
-window.editProduct        = editProduct;
-window.editSupplier       = editSupplier;
-window.editCustomer       = editCustomer;
+window.closeModal   = closeModal;
+window.deleteProduct  = deleteProduct;
+window.deleteInbound  = deleteInbound;
+window.deleteOutbound = deleteOutbound;
+window.editProduct    = editProduct;
+window.editSupplier   = editSupplier;
+window.editCustomer   = editCustomer;

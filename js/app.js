@@ -105,12 +105,12 @@ function setupNavigation() {
 
 /* ================ 右上使用者選單（登出） ================= */
 function setupUserMenu() {
-  const btn = $('#userMenuBtn');
-  const dropdown = $('#userDropdown');
+  const btn = $('#userMenuBtn');          // 觸發按鈕
+  const dropdown = $('#userDropdown');    // 下拉選單本體
   const logoutBtn = $('#logoutBtn');
   const nameSpan = $('#userNameSpan');
 
-  // 顯示使用者名稱
+  // 顯示使用者名稱（容錯）
   try {
     const me = auth.getUserInfo && auth.getUserInfo();
     if (me && nameSpan) {
@@ -119,24 +119,39 @@ function setupUserMenu() {
   } catch (_) {}
 
   if (btn && dropdown) {
+    // 切換開關
     btn.addEventListener('click', (e) => {
-      e.stopPropagation();
+      e.stopPropagation(); // 防止冒泡到 document 的關閉監聽
       dropdown.classList.toggle('show');
+      btn.setAttribute('aria-expanded', dropdown.classList.contains('show') ? 'true' : 'false');
     });
-    // 點外面關閉
+
+    // 點選單內部不要關閉
+    dropdown.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    // 點外面關閉（把所有可能容器與本體都納入判斷）
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.user-menu, .nav-user')) {
-        dropdown.classList.remove('show');
-      }
+      const isInside =
+        e.target.closest('#userMenuBtn') ||
+        e.target.closest('#userDropdown') ||
+        e.target.closest('.user-menu') ||
+        e.target.closest('.nav-user');
+      if (!isInside) dropdown.classList.remove('show');
+    });
+
+    // Esc 關閉（友善性）
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') dropdown.classList.remove('show');
     });
   }
 
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      try {
-        await auth.logout();
-      } catch (err) {
+      try { await auth.logout(); }
+      catch (err) {
         console.error(err);
         notify('error', '登出失敗，請稍後再試');
       }

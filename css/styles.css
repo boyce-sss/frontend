@@ -65,12 +65,15 @@ body {
     transform: translateY(-2px);
 }
 
-/* 使用者選單（新增） */
+/* 使用者選單（對齊 HTML 與 JS 的 class 命名）
+   兼容舊寫法：.nav-user / .user-btn */
+.user-menu,
 .nav-user {
     position: relative;
     margin-left: 1rem;
 }
 
+.user-menu-btn,
 .user-btn {
     display: inline-flex;
     align-items: center;
@@ -85,6 +88,7 @@ body {
     transition: all 0.2s ease;
 }
 
+.user-menu-btn:hover,
 .user-btn:hover {
     background: #e9ebff;
     transform: translateY(-1px);
@@ -326,7 +330,7 @@ body {
     padding-top: 1rem; border-top: 1px solid #eee;
 }
 
-/* 變更密碼卡片（新增美化） */
+/* 變更密碼卡片（美化） */
 .change-password-card {
     margin-top: 16px; padding: 1.5rem 1.5rem 1.25rem;
 }
@@ -349,7 +353,7 @@ body {
 .form-message.error { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
 .form-message.success { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }
 
-/* 管理員 reset details（新增） */
+/* 管理員 reset details */
 details.admin-reset {
     margin: 0.25rem 0 0.5rem;
     border: 1px dashed #dbe1ff;

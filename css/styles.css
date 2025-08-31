@@ -137,10 +137,12 @@ body {
 /* ========== Modal（統一設計） ========== */
 .modal-overlay{
   position:fixed; inset:0; width:100%; height:100%;
-  background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.5);
+  display:flex;                               /* ← 預設就顯示，與現有 app.js 相容 */
+  align-items:center; justify-content:center;
   z-index:3000; backdrop-filter:blur(5px); overflow-y:auto; padding:24px;
 }
-.modal-overlay.show{ display:flex; }
+.modal-overlay.show{ display:flex; }          /* 保留：若未來想用 class 控制也支援 */
 .modal{
   background:#fff; border-radius:12px; width:min(640px,92vw); max-height:90vh; padding:24px;
   box-shadow:0 10px 40px rgba(0,0,0,.3); overflow-y:auto; position:relative;
@@ -173,21 +175,20 @@ body {
   display:flex; justify-content:flex-end; gap:1rem; margin-top:1.25rem; padding-top:1rem; border-top:1px solid #eee;
 }
 
-/* ✅ 新增：Modal 內 checkbox 與說明的排版（給「自動產生商品ID」用） */
-.modal .checkbox-row{                 /* 若你的 HTML 有這個容器，會優先套用 */
+/* ✅ Modal 內 checkbox 與說明的排版（給「自動產生商品ID」用） */
+.modal .checkbox-row{
   display:flex; align-items:center; justify-content:flex-end; gap:.5rem; margin:.25rem 0 .5rem;
 }
 .modal input[type="checkbox"]{
-  width:18px; height:18px; accent-color:#667eea; vertical-align:middle; cursor:pointer;
-  margin:0; /* 去除預設外距避免跑位 */
+  width:18px; height:18px; accent-color:#667eea; vertical-align:middle; cursor:pointer; margin:0;
 }
 .modal input[type="checkbox"] + label,
-.modal label.checkbox-label{          /* 相容：label 在 checkbox 後或有自定義 class */
+.modal label.checkbox-label{
   display:inline-block; vertical-align:middle; margin:0; white-space:nowrap; font-weight:600; color:#374151;
 }
 .modal .help-text,
 .modal small,
-.modal .hint{                         /* 說明行：自動換到下一行、字小淡 */
+.modal .hint{
   display:block; margin-top:6px; color:#6b7280; font-size:.9rem; line-height:1.4;
 }
 
